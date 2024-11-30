@@ -7,12 +7,16 @@ import java.util.regex.Pattern;
 public class MakeCSV {
     public static void main(String[] args) {
         try {
-            String command = "java -cp \".;commons-lang3-3.6.jar\" QLearningAsToMaze maze_original.dat \"1,1,8,8,22\" \"0.5,0.5,0.5\"";
+            // コマンドライン引数からパラメータを取得
+            String[] params = args[1].split(",");
+            String epsilon = params[0];
+            String alpha = params[1];
+            String gamma = params[2];
             
             ProcessBuilder pb = new ProcessBuilder(Arrays.asList(
                 "java", "-Dfile.encoding=UTF-8",
                 "-cp", ".;commons-lang3-3.6.jar",
-                "QLearningAsToMaze", "maze_original.dat", "1,1,8,8,22", "0.5,0.5,0.5"
+                "QLearningAsToMaze", "maze_original.dat", args[0], args[1]
             ));
             
             pb.directory(new File("."));
@@ -23,9 +27,6 @@ public class MakeCSV {
                 new InputStreamReader(process.getInputStream(), "MS932")
             );
 
-            String epsilon = "0.5";
-            String alpha = "0.5";
-            String gamma = "0.5";
             int learningCount = 0;
             int steps = 0;
 
