@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ExecutionException;
 
 public class RepeatedRunning {
     public static void main(String[] args) {
@@ -28,6 +29,10 @@ public class RepeatedRunning {
             System.out.print("実行回数を入力してください: ");
             int executionCount = scanner.nextInt();
 
+            // 最大ステップ数を入力
+            System.out.print("最大ステップ数を入力してください（例: 22）: ");
+            int maxSteps = scanner.nextInt();
+
             // 学習回数とステップ数を保存するリスト
             ArrayList<Integer> learningCounts = new ArrayList<>();
             ArrayList<Integer> stepCounts = new ArrayList<>();
@@ -43,69 +48,73 @@ public class RepeatedRunning {
                     System.out.printf("%n=== 実行 %d 回目: ε=%.2f, α=%.2f, γ=%.2f ===%n", 
                         runIndex + 1, epsilon, alpha, gamma);
 
-                    ProcessBuilder pb = new ProcessBuilder(Arrays.asList(
-                        "java", "-Dfile.encoding=UTF-8",
-                        "-cp", ".;commons-lang3-3.6.jar",
-                        "QLearningAsToMaze", "maze_original.dat", "1,1,8,8,22",
-                        String.format("%.2f,%.2f,%.2f", epsilon, alpha, gamma)
-                    ));
-                    
-                    pb.directory(new File("."));
-                    pb.environment().put("JAVA_TOOL_OPTIONS", "-Dfile.encoding=UTF-8");
-                    Process process = pb.start();
-
-                    BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(process.getInputStream(), "MS932")
-                    );
-
-                    int learningCount = 0;
-                    int steps = 0;
-
-                    String line;
-                    boolean foundOptimal = false;
-                    
-                    while ((line = reader.readLine()) != null) {
-                        if (line.contains("最適ルートを獲得")) {
-                            foundOptimal = true;
-                            continue;
-                        }
+                    try {
+                        ProcessBuilder pb = new ProcessBuilder(Arrays.asList(
+                            "java", "-Dfile.encoding=UTF-8",
+                            "-cp", ".;commons-lang3-3.6.jar",
+                            "QLearningAsToMaze", "maze_original.dat", "1,1,8,8," + maxSteps,
+                            String.format("%.2f,%.2f,%.2f", epsilon, alpha, gamma)
+                        ));
                         
-                        if (foundOptimal && line.contains("学習回数")) {
-                            Pattern pattern = Pattern.compile("学習回数：(\\d+)\\s+ゴールまでのステップ数:(\\d+)");
-                            Matcher matcher = pattern.matcher(line);
-                            if (matcher.find()) {
-                                learningCount = Integer.parseInt(matcher.group(1));
-                                steps = Integer.parseInt(matcher.group(2));
-                                break;
+                        pb.directory(new File("."));
+                        pb.environment().put("JAVA_TOOL_OPTIONS", "-Dfile.encoding=UTF-8");
+                        Process process = pb.start();
+
+                        BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(process.getInputStream(), "MS932")
+                        );
+
+                        int learningCount = 0;
+                        int steps = 0;
+
+                        String line;
+                        boolean foundOptimal = false;
+                        
+                        while ((line = reader.readLine()) != null) {
+                            if (line.contains("最適ルートを獲得")) {
+                                foundOptimal = true;
+                                continue;
+                            }
+                            
+                            if (foundOptimal && line.contains("学習回数")) {
+                                Pattern pattern = Pattern.compile("学習回数：(\\d+)\\s+ゴールまでのステップ数:(\\d+)");
+                                Matcher matcher = pattern.matcher(line);
+                                if (matcher.find()) {
+                                    learningCount = Integer.parseInt(matcher.group(1));
+                                    steps = Integer.parseInt(matcher.group(2));
+                                    break;
+                                }
                             }
                         }
-                    }
 
-                    // 結果をリストに追加
-                    synchronized (learningCounts) {
-                        learningCounts.add(learningCount);
-                    }
-                    synchronized (stepCounts) {
-                        stepCounts.add(steps);
-                    }
-
-                    // 結果をCSVに出力
-                    try (PrintWriter writer = new PrintWriter(
-                            new OutputStreamWriter(
-                                new FileOutputStream("output.csv", true),
-                                StandardCharsets.UTF_8
-                            ))) {
-                        
-                        if (!new File("output.csv").exists()) {
-                            writer.write('\ufeff');
+                        // 結果をリストに追加
+                        synchronized (learningCounts) {
+                            learningCounts.add(learningCount);
+                        }
+                        synchronized (stepCounts) {
+                            stepCounts.add(steps);
                         }
 
-                        writer.printf("実行%d回目 ε:%.2f α:%.2f γ:%.2f 学習回数:%d ステップ数:%d%n",
-                            runIndex + 1, epsilon, alpha, gamma, learningCount, steps);
-                    }
+                        // 結果をRepeatedRunning.csvに出力
+                        try (PrintWriter writer = new PrintWriter(
+                                new OutputStreamWriter(
+                                    new FileOutputStream("RepeatedRunning.csv", true),
+                                    StandardCharsets.UTF_8
+                                ))) {
+                            
+                            if (!new File("RepeatedRunning.csv").exists()) {
+                                writer.write('\ufeff');
+                            }
 
-                    process.waitFor();
-                    System.out.println("実行完了");
+                            writer.printf("実行%d回目 ε:%.2f α:%.2f γ:%.2f 学習回数:%d ステップ数:%d%n",
+                                runIndex + 1, epsilon, alpha, gamma, learningCount, steps);
+                        }
+
+                        process.waitFor();
+                        System.out.println("実行完了");
+                    } catch (IOException | InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
                     return null;
                 }));
             }
@@ -125,7 +134,7 @@ public class RepeatedRunning {
             System.out.printf("学習回数の分散: %.2f%n", learningVariance);
             System.out.printf("ステップ数の分散: %.2f%n", stepsVariance);
 
-        } catch (IOException | InterruptedException | ExecutionException e) {
+        } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
     }
