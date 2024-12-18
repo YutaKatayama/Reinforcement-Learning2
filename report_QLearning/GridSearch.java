@@ -1,3 +1,4 @@
+// 値を指定してグリッドサーチを行うプログラム
 import java.io.*;
 import java.util.Arrays;
 import java.nio.charset.StandardCharsets;
@@ -10,6 +11,9 @@ public class GridSearch {
         double[] epsilonValues = {0.1, 0.3, 0.5, 0.7, 0.9};
         double[] alphaValues = {0.1, 0.3, 0.5, 0.7, 0.9};
         double[] gammaValues = {0.1, 0.3, 0.5, 0.7, 0.9};
+
+        // 最大ステップ数を固定値として設定
+        int maxSteps = 14;
 
         // 結果を保存するCSVファイルの準備
         try (PrintWriter writer = new PrintWriter(
@@ -31,7 +35,7 @@ public class GridSearch {
                         ProcessBuilder pb = new ProcessBuilder(Arrays.asList(
                             "java", "-Dfile.encoding=UTF-8",
                             "-cp", ".;commons-lang3-3.6.jar",
-                            "QLearningAsToMaze", "maze_original.dat", "1,1,8,8,22",
+                            "QLearningAsToMaze", "maze_original.dat", "1,1,8,8," + maxSteps,
                             String.format("%.2f,%.2f,%.2f", epsilon, alpha, gamma)
                         ));
 

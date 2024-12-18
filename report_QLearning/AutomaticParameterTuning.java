@@ -1,3 +1,4 @@
+// これゴミコードです。実行時間長すぎ
 import java.io.*;
 import java.util.Arrays;
 import java.nio.charset.StandardCharsets;
